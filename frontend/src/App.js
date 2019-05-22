@@ -88,6 +88,9 @@ class Map {
     };
     set = function () {
         this.lockindex = Math.floor(Math.random() * this.count);
+        while (this.count % 2 === 1 && this.lockindex === Math.floor(this.count/2)) {
+            this.lockindex = Math.floor(Math.random() * this.count);
+        }
         for (let i = 0; i < this.lines.length; i++) {
             for (let j = 0, x = 0; j < this.lines[i].length; j++, x++) {
                 if (x === this.lockindex) {
@@ -152,11 +155,9 @@ class App extends React.Component {
             "candidate": this.map.candidate,
             "ground": this.map.ground
         };
-        console.log(now);
         this.setState(() => ({now: now}));
         let record = [now];
         this.setState(() => ({record: record}));
-        console.log(this.state.record);
     };
     exchange = function (placeA, indexA, stateA, colorA, callbackA, placeB, indexB, stateB, colorB, callbackB) {
         let keyA = {
@@ -177,13 +178,10 @@ class App extends React.Component {
         let temp = now[placeA][indexA];
         now[placeA][indexA] = now[placeB][indexB];
         now[placeB][indexB] = temp;
-        console.log(now);
         this.setState(() => ({now: now}));
         let record = this.state.record;
-        console.log(record);
         record.push(now);
         this.setState(() => ({record: record}));
-        console.log(this.state.record);
     };
     samecolor = function (colorA, colorB) {
         return (colorA[0] === colorB[0] && colorA[1] === colorB[1] && colorA[2] === colorB[2]);
@@ -193,9 +191,7 @@ class App extends React.Component {
             for (let j = 0, x = 0; j < this.state.map.lines[i].length; j++, x++) {
                 let tile_color = this.state.now["ground"][x];
                 let ans_color = this.state.map.lines[i][j];
-                console.log(tile_color, ans_color);
                 if (this.samecolor(tile_color,ans_color) === false) {
-                    console.log("no", tile_color, ans_color);
                     return;
                 }
             }
