@@ -1,0 +1,132 @@
+.App {
+    width: 100vw;
+    height: 100vh;
+    background-color: black;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+}
+
+.Logo {
+    width: 100vw;
+    height: 30vw;
+    margin: auto;
+    color: white;
+    font-size: 80px;
+}
+
+.Selector {
+    width: 100vw;
+    height: 15vw;
+    margin: 0;
+    background-color: black;
+    color: white;
+    font-size: 40px;
+}
+
+.Header {
+    width: 100vw;
+    height: 10vh;
+    display: flex;
+    flex-direction: row;
+}
+
+.Candidate {
+    display: table;
+    width: 100vw;
+    height: 30vh;
+    text-align: center;
+    margin: auto;
+
+}
+
+.Ground {
+    display: table;
+    width: 100vw;
+    height: 50vh;
+    text-align: center;
+    margin: auto;
+}
+
+.Footer {
+    width: 100vw;
+    height: 10vh;
+    display: flex;
+    flex-direction: row;
+}
+
+.Exit {
+    width: 25vw;
+    height: inherit;
+}
+
+.Time {
+    width: 50vw;
+    height: inherit;
+    display: table;
+    color: white;
+    font-size: 50px;
+}
+
+.Timer {
+    color: white;
+    margin: auto;
+    height: inherit;
+    width: inherit;
+    display: table-cell;
+    vertical-align: middle;
+}
+
+.Ans {
+    width: 25vw;
+    height: inherit;
+}
+
+.Save {
+    width: 25vw;
+    height: inherit;
+}
+
+.Load {
+    width: 25vw;
+    height: inherit;
+}
+
+.Prev {
+    width: 25vw;
+    height: inherit;
+}
+
+.Help {
+    width: 25vw;
+    height: inherit;
+}
+
+.Tile {
+    margin: 20px 20px;
+    display: table-cell;
+    vertical-align: middle;
+    height: 70px;
+    width: 70px;
+    border: white 2px dashed;
+}
+
+.Tile:hover {
+    border: black 2px solid;
+}
+
+.Tile[state='lock'] {
+    border: red;
+}
+
+.Icon {
+    background-color: dimgrey;
+    color: white;
+    height: inherit;
+    width: inherit;
+    font-size: 30px;
+}
+
+.Icon:hover {
+    font-size: 40px;
+}
