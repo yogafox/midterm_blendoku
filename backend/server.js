@@ -60,7 +60,7 @@ router.delete('/deleteData', (req, res) => {
   });
 });
 
-// this is our create methid
+// this is our create method
 // this method adds new data in our database
 router.post('/putData', (req, res) => {
   let data = new Data();
@@ -75,6 +75,25 @@ router.post('/putData', (req, res) => {
   }
   data.message = message;
   data.id = id;
+  data.save((err) => {
+    if (err) return res.json({ success: false, error: err });
+    return res.json({ success: true });
+  });
+});
+
+router.post('/putDataToken', (req, res) => {
+  let data = new Data();
+
+  const { token, message } = req.body;
+
+  if ((!token && token !== 0) || !message) {
+    return res.json({
+      success: false,
+      error: 'INVALID INPUTS',
+    });
+  }
+  data.message = message;
+  data.token = token;
   data.save((err) => {
     if (err) return res.json({ success: false, error: err });
     return res.json({ success: true });

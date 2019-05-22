@@ -1,11 +1,12 @@
 import React, {Component} from 'react';
 import ReactDOM from 'react-dom';
+import axios from 'axios';
 import './App.css';
 import Exit from './components/Exit';
 import Time from './containers/Time';
 import Ans from './components/Ans';
-import Save from './components/Save';
-import Load from './components/Load';
+import Save from './containers/Save';
+import Load from './containers/Load';
 import Prev from './components/Prev';
 import Help from './components/Help';
 import Tile from './containers/Tile';
@@ -14,7 +15,6 @@ class Map {
     constructor(type) {
         this.candidate = [];
         this.ground = [];
-        this.time = 0;
         this.type = type;
         this.count = 0;
         this.lines = [];
@@ -33,6 +33,7 @@ class Map {
             }
             this.lines.push(line);
         }
+        this.set()
     }
 
     randomcolor = function () {
@@ -84,23 +85,25 @@ class Map {
         }
         return array;
     };
+    set = function () {
+        this.lockindex = Math.floor(Math.random() * this.count);
+        for (let i = 0; i < this.lines.length; i++) {
+            for (let j = 0, x = 0; j < this.lines[i].length; j++, x++) {
+                if (x === this.lockindex) {
+                    this.candidate.push('unfilled');
+                    this.ground.push(this.lines[i][j]);
+                } else {
+                    this.candidate.push(this.lines[i][j]);
+                    this.ground.push('unfilled');
+                }
+            }
+        }
+        this.shuffle(this.candidate, this.lockindex);
+    }
 }
 
 class App extends React.Component {
     makeTiles = function (map) {
-        map.lockindex = Math.floor(Math.random() * map.count);
-        for (let i = 0; i < map.lines.length; i++) {
-            for (let j = 0, x = 0; j < map.lines[i].length; j++, x++) {
-                if (x === map.lockindex) {
-                    map.candidate.push('unfilled');
-                    map.ground.push(map.lines[i][j]);
-                } else {
-                    map.candidate.push(map.lines[i][j]);
-                    map.ground.push('unfilled');
-                }
-            }
-        }
-        map.shuffle(map.candidate, map.lockindex);
         let candidate = [];
         let ground = [];
         for (let x = 0; x < map.count; x++) {
@@ -136,6 +139,7 @@ class App extends React.Component {
             "candidate": map.candidate,
             "ground": map.ground
         };
+        this.record = [this.now];
     };
     exchange = function (placeA, indexA, stateA, colorA, callbackA, placeB, indexB, stateB, colorB, callbackB) {
         let keyA = {
@@ -155,16 +159,15 @@ class App extends React.Component {
         let temp = this.now[placeA][indexA];
         this.now[placeA][indexA] = this.now[placeB][indexB];
         this.now[placeB][indexB] = temp;
+        this.record.push = this.now;
+        console.log(this.record);
     };
     checkans = function () {
-        console.log("check");
         for (let i = 0; i < this.state.map.lines.length; i++) {
             for (let j = 0, x = 0; j < this.state.map.lines[i].length; j++, x++) {
                 let tile_color = this.now["ground"][x];
                 let ans_color = this.state.map.lines[i][j];
-                console.log(tile_color, ans_color);
                 if (tile_color !== ans_color) {
-                    console.log("false");
                     return;
                 }
             }
@@ -175,7 +178,6 @@ class App extends React.Component {
 
     tileOnclick(key) {
         if (this.state.selected !== 'none') {
-            console.log(this.state.selected, this.state.sel_index, key.index);
             this.exchange(key.place, key.index, key.state, key.color, key.callback,
                 this.state.selected, this.state.sel_index, this.state.sel_state, this.state.sel_color, this.state.sel_callback)
             this.setState({selected: 'none'});
@@ -195,13 +197,81 @@ class App extends React.Component {
     };
     handleNewGame = () => {
         let map = new Map(1);
+        this.setState({map: map});
+        this.setState({token: "Last"});
         this.makeTiles(map);
         this.setState({status: "NewGame"});
-        this.setState({map: map});
         this.setState({selected: 'none'});
     };
     handleExitGame = () => {
         this.setState({status: "Welcome"});
+    };
+    escapeHTML = function (text) {
+        return text.replace(/&/g, "&amp;")
+            .replace(/"/g, "&quot;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+    };
+
+    tokenHandler = (event) => {
+        if (event.keyCode === 13 && event.target.value.trim() !== "") {
+            let token = this.escapeHTML(event.target.value.trim());
+            this.setState({token: token});
+            event.target.value = "";
+            if (this.state.direction === "Save") {
+                this.Saver(token);
+            } else { // Load
+                this.Loader(token);
+            }
+        }
+    };
+
+    Saver = (token) => {
+        let data = {
+            "token" : token,
+            "map" : this.state.map,
+            "type" : this.state.map.type,
+            "time" : this.state.time,
+            "count" : this.state.map.count,
+            "lockindex" : this.state.map.lockindex,
+            "locknum" : this.state.map.locknum,
+            "lines" : this.state.map.lines,
+            "linenum" : this.state.map.linenum,
+            "candidate" : this.state.candidate,
+            "ground" : this.state.ground,
+            "record" : this.record,
+        };
+        let str = JSON.stringify(data);
+        this.putDataToDB(token, str);
+        this.setState({status: "Welcome"});
+    };
+
+    Loader = (token) => {
+        for (let i = 0; i < this.state.data.length; i++) {
+            if (this.state.data[i].token === token) {
+                let data = JSON.parse(this.state.data[i].message);
+                let map = data.map;
+                this.setState({token: data.token});
+                this.setState({time: data.time});
+                this.setState({candidate: data.candidate});
+                this.setState({ground: data.ground});
+                this.setState({map: map});
+                this.setState({selected: 'none'});
+                this.setState({status: "NewGame"});
+            }
+        }
+    };
+
+    handleSaveGame = () => {
+        console.log(this.state.data);
+        this.setState({direction: "Save"});
+        this.setState({status: "AskToken"});
+    };
+
+    handleLoadGame = () => {
+        console.log(this.state.data);
+        this.setState({direction: "Load"});
+        this.setState({status: "AskToken"});
     };
 
     constructor(props) {
@@ -209,6 +279,30 @@ class App extends React.Component {
         this.state = {status: "Welcome"};
     }
 
+    componentDidMount() {
+        this.getDataFromDb();
+        if (!this.state.intervalIsSet) {
+            let interval = setInterval(this.getDataFromDb, 1000);
+            this.setState({ intervalIsSet: interval });
+        }
+    }
+    componentWillUnmount() {
+        if (this.state.intervalIsSet) {
+            clearInterval(this.state.intervalIsSet);
+            this.setState({ intervalIsSet: null });
+        }
+    }
+    getDataFromDb = () => {
+        fetch('http://localhost:3001/api/getData')
+            .then((data) => data.json())
+            .then((res) => this.setState({ data: res.data }));
+    };
+    putDataToDB = (token, message) => {
+        axios.post('http://localhost:3001/api/putDataToken', {
+            token: token,
+            message: message,
+        });
+    };
     render() {
         if (this.state.status === "Welcome") {
             return (
@@ -219,7 +313,7 @@ class App extends React.Component {
                     <button className="Selector" onClick={this.handleNewGame}>
                         New Game
                     </button>
-                    <button className="Selector">
+                    <button className="Selector" onClick={this.handleLoadGame}>
                         Load Game
                     </button>
                 </div>
@@ -229,7 +323,7 @@ class App extends React.Component {
                 <div className="App">
                     <div className="Header">
                         <Exit onClick={this.handleExitGame}/>
-                        <Time initTime={this.state.map.time} callrecv={this.timeReceiver.bind(this)}/>
+                        <Time initTime={+0} callrecv={this.timeReceiver.bind(this)}/>
                         <Ans/>
                     </div>
                     <div className="Candidate" children={this.state.candidate}>
@@ -237,7 +331,7 @@ class App extends React.Component {
                     <div className="Ground" children={this.state.ground}>
                     </div>
                     <div className="Footer">
-                        <Save/>
+                        <Save onClick={this.handleSaveGame}/>
                         <Load/>
                         <Prev/>
                         <Help/>
@@ -255,11 +349,26 @@ class App extends React.Component {
                             </p>
                         </div>
                     </div>
-                    <div className="Candidate">
+                    <div className="Message">
+                        <p>Success</p>
                     </div>
                     <div className="Ground" children={this.state.ansTile}>
                     </div>
-                    <div> You Win
+                    <div className="Footer">
+                    </div>
+                </div>
+            );
+        } else if (this.state.status === "AskToken") {
+            return (
+                <div className="App">
+                    <div className="Header">
+                        <Exit onClick={this.handleExitGame}/>
+                    </div>
+                    <div className="Message">
+                        <p>Name</p>
+                        <input className="Token" onKeyUp={this.tokenHandler}/>
+                    </div>
+                    <div className="Footer">
                     </div>
                 </div>
             );
