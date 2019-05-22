@@ -13,6 +13,7 @@ import Tile from './containers/Tile';
 
 class Map {
     constructor(type) {
+        this.time = 0;
         this.candidate = [];
         this.ground = [];
         this.type = type;
@@ -103,43 +104,59 @@ class Map {
 }
 
 class App extends React.Component {
-    makeTiles = function (map) {
-        let candidate = [];
-        let ground = [];
-        for (let x = 0; x < map.count; x++) {
-            if (x === map.lockindex) {
-                ground.push(<Tile color={map.ground[x]} state='lock' place='ground' index={x}
-                                  onClick={this.tileOnclick.bind(this)}/>)
-                if (map.candidate[x] === 'unfilled') {
-                    candidate.push(<Tile state='unfilled' place='candidate' index={x}
-                                         onClick={this.tileOnclick.bind(this)}/>)
+    handleNewGame = () => {
+        this.map = new Map(1);
+        this.setState({map: this.map});
+        this.setState({token: "Last"});
+        this.makeTiles();
+        this.setState({selected: 'none'});
+        this.setState({record: []});
+        this.setState({status: "NewGame"});
+    };
+    handleExitGame = () => {
+        this.setState({status: "Welcome"});
+    };
+    makeTiles = function () {
+        let candidateTile = [];
+        let groundTile = [];
+        for (let x = 0; x < this.map.count; x++) {
+            if (x === this.map.lockindex) {
+                groundTile.push(<Tile color={this.map.ground[x]} state='lock' place='ground' index={x}
+                                  onClick={this.tileOnclick.bind(this)}/>);
+                if (this.map.candidate[x] === 'unfilled') {
+                    candidateTile.push(<Tile state='unfilled' place='candidate' index={x}
+                                         onClick={this.tileOnclick.bind(this)}/>);
                 } else {
-                    candidate.push(<Tile state='filled' color={map.candidate[x]} place='candidate' index={x}
-                                         onClick={this.tileOnclick.bind(this)}/>)
+                    candidateTile.push(<Tile state='filled' color={this.map.candidate[x]} place='candidate' index={x}
+                                         onClick={this.tileOnclick.bind(this)}/>);
                 }
                 continue;
             }
-            if (map.candidate[x] === 'unfilled') {
-                candidate.push(<Tile state='unfilled' place='candidate' index={x}
+            if (this.map.candidate[x] === 'unfilled') {
+                candidateTile.push(<Tile state='unfilled' place='candidate' index={x}
                                      onClick={this.tileOnclick.bind(this)}/>)
             } else {
-                candidate.push(<Tile state='filled' color={map.candidate[x]} place='candidate' index={x}
+                candidateTile.push(<Tile state='filled' color={this.map.candidate[x]} place='candidate' index={x}
                                      onClick={this.tileOnclick.bind(this)}/>)
             }
-            if (map.ground[x] === 'unfilled') {
-                ground.push(<Tile state='unfilled' place='ground' index={x} onClick={this.tileOnclick.bind(this)}/>)
+            if (this.map.ground[x] === 'unfilled') {
+                groundTile.push(<Tile state='unfilled' place='ground' index={x} onClick={this.tileOnclick.bind(this)}/>)
             } else {
-                ground.push(<Tile state='filled' color={map.ground[x]} place='ground' index={x}
+                groundTile.push(<Tile state='filled' color={this.map.ground[x]} place='ground' index={x}
                                   onClick={this.tileOnclick.bind(this)}/>)
             }
         }
-        this.setState(() => ({ground: ground}));
-        this.setState(() => ({candidate: candidate}));
-        this.now = {
-            "candidate": map.candidate,
-            "ground": map.ground
+        this.setState(() => ({groundTile: groundTile}));
+        this.setState(() => ({candidateTile: candidateTile}));
+        let now = {
+            "candidate": this.map.candidate,
+            "ground": this.map.ground
         };
-        this.record = [this.now];
+        console.log(now);
+        this.setState(() => ({now: now}));
+        let record = [now];
+        this.setState(() => ({record: record}));
+        console.log(this.state.record);
     };
     exchange = function (placeA, indexA, stateA, colorA, callbackA, placeB, indexB, stateB, colorB, callbackB) {
         let keyA = {
@@ -156,23 +173,34 @@ class App extends React.Component {
             "index": indexB
         };
         callbackB(keyB);
-        let temp = this.now[placeA][indexA];
-        this.now[placeA][indexA] = this.now[placeB][indexB];
-        this.now[placeB][indexB] = temp;
-        this.record.push = this.now;
-        console.log(this.record);
+        let now = this.state.now;
+        let temp = now[placeA][indexA];
+        now[placeA][indexA] = now[placeB][indexB];
+        now[placeB][indexB] = temp;
+        console.log(now);
+        this.setState(() => ({now: now}));
+        let record = this.state.record;
+        console.log(record);
+        record.push(now);
+        this.setState(() => ({record: record}));
+        console.log(this.state.record);
     };
+    samecolor = function (colorA, colorB) {
+        return (colorA[0] === colorB[0] && colorA[1] === colorB[1] && colorA[2] === colorB[2]);
+    }
     checkans = function () {
         for (let i = 0; i < this.state.map.lines.length; i++) {
             for (let j = 0, x = 0; j < this.state.map.lines[i].length; j++, x++) {
-                let tile_color = this.now["ground"][x];
+                let tile_color = this.state.now["ground"][x];
                 let ans_color = this.state.map.lines[i][j];
-                if (tile_color !== ans_color) {
+                console.log(tile_color, ans_color);
+                if (this.samecolor(tile_color,ans_color) === false) {
+                    console.log("no", tile_color, ans_color);
                     return;
                 }
             }
         }
-        this.setState({ansTile: this.state.ground});
+        this.setState({ansTile: this.state.groundTile});
         this.setState({status: "Win"});
     };
 
@@ -195,17 +223,7 @@ class App extends React.Component {
         this.time = key.time;
         this.setState({time: key.time});
     };
-    handleNewGame = () => {
-        let map = new Map(1);
-        this.setState({map: map});
-        this.setState({token: "Last"});
-        this.makeTiles(map);
-        this.setState({status: "NewGame"});
-        this.setState({selected: 'none'});
-    };
-    handleExitGame = () => {
-        this.setState({status: "Welcome"});
-    };
+
     escapeHTML = function (text) {
         return text.replace(/&/g, "&amp;")
             .replace(/"/g, "&quot;")
@@ -227,6 +245,7 @@ class App extends React.Component {
     };
 
     Saver = (token) => {
+
         let data = {
             "token" : token,
             "map" : this.state.map,
@@ -251,11 +270,14 @@ class App extends React.Component {
             if (this.state.data[i].token === token) {
                 let data = JSON.parse(this.state.data[i].message);
                 let map = data.map;
+                map.time = data.time;
                 this.setState({token: data.token});
                 this.setState({time: data.time});
                 this.setState({candidate: data.candidate});
                 this.setState({ground: data.ground});
                 this.setState({map: map});
+                this.map = map;
+                this.makeTiles();
                 this.setState({selected: 'none'});
                 this.setState({status: "NewGame"});
             }
@@ -323,16 +345,16 @@ class App extends React.Component {
                 <div className="App">
                     <div className="Header">
                         <Exit onClick={this.handleExitGame}/>
-                        <Time initTime={+0} callrecv={this.timeReceiver.bind(this)}/>
+                        <Time initTime={+this.state.map.time} callrecv={this.timeReceiver.bind(this)}/>
                         <Ans/>
                     </div>
-                    <div className="Candidate" children={this.state.candidate}>
+                    <div className="Candidate" children={this.state.candidateTile}>
                     </div>
-                    <div className="Ground" children={this.state.ground}>
+                    <div className="Ground" children={this.state.groundTile}>
                     </div>
                     <div className="Footer">
                         <Save onClick={this.handleSaveGame}/>
-                        <Load/>
+                        <Load onClick={this.handleLoadGame}/>
                         <Prev/>
                         <Help/>
                     </div>
